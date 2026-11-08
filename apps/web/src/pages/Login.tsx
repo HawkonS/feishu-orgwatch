@@ -1,10 +1,10 @@
-import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useRef, useState } from "react";
+import { useForm, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { AlertCircle, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { post, errorMessage } from "../api";
 import { useBootstrapStatus, useSession, type User } from "../lib/session";
 import { Button, Input } from "../components/ui";
@@ -23,9 +23,8 @@ export default function Login() {
   const navigate = useNavigate();
   const [search] = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(
-    search.get("feishu_error") ? "飞书登录失败，请重试或使用本地账号" : null,
-  );
+  const feishuErrorShown = useRef(false);
+  const feishuError = search.get("feishu_error");
   const redirectParam = search.get("redirect") ?? "/";
   const redirect = redirectParam.startsWith("/") && !redirectParam.startsWith("//") ? redirectParam : "/";
 
@@ -34,15 +33,25 @@ export default function Login() {
     defaultValues: { username: "", password: "" },
   });
 
+  useEffect(() => {
+    if (!feishuError || feishuErrorShown.current) return;
+    feishuErrorShown.current = true;
+    toast.error("飞书登录失败，请重试或使用本地账号");
+  }, [feishuError]);
+
+  const onInvalid = (errors: FieldErrors<FormValues>) => {
+    const message = errors.username?.message ?? errors.password?.message;
+    if (message) toast.error(String(message));
+  };
+
   const onSubmit = async (values: FormValues) => {
-    setError(null);
     try {
       const data = await post<{ user: User }>("/auth/login", values);
       setUser(data.user);
       toast.success(`欢迎回来，${data.user.displayName}`);
       navigate(redirect, { replace: true });
     } catch (caught) {
-      setError(errorMessage(caught));
+      toast.error(errorMessage(caught));
     }
   };
 
@@ -53,7 +62,7 @@ export default function Login() {
         <p className="mt-1.5 text-sm text-slate-500">请登录您的账号以继续</p>
       </div>
 
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5" noValidate>
+      <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-5" noValidate>
         <div className="space-y-1.5">
           <label htmlFor="username" className="text-sm font-medium text-slate-700">
             账号
@@ -65,9 +74,6 @@ export default function Login() {
             className="h-11 rounded-lg border-slate-200 transition-shadow focus-visible:ring-2"
             {...form.register("username")}
           />
-          {form.formState.errors.username ? (
-            <p className="text-xs text-rose-600">{form.formState.errors.username.message}</p>
-          ) : null}
         </div>
 
         <div className="space-y-1.5">
@@ -93,17 +99,7 @@ export default function Login() {
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
-          {form.formState.errors.password ? (
-            <p className="text-xs text-rose-600">{form.formState.errors.password.message}</p>
-          ) : null}
         </div>
-
-        {error ? (
-          <div className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
-            <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            {error}
-          </div>
-        ) : null}
 
         <Button
           type="submit"
@@ -139,7 +135,6 @@ export default function Login() {
         </>
       ) : null}
 
-      <p className="mt-6 text-center text-xs text-slate-400">账号与凭据只保存在本机 SQLite 中</p>
     </AuthShell>
   );
 }
