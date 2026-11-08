@@ -3,19 +3,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   ArrowUpCircle,
-  CheckCircle2,
-  Clock3,
-  Cpu,
-  Database,
-  FileText,
-  Folder,
-  GitBranch,
-  Loader2,
-  Monitor,
   RefreshCw,
   Server,
   Terminal,
-  XCircle,
 } from "lucide-react";
 import { get, post, errorMessage } from "../api";
 import { relativeTime } from "../lib/format";
@@ -122,40 +112,6 @@ const STATE_LABEL: Record<string, string> = {
   failed: "失败",
 };
 
-function StatusCard({
-  icon: Icon,
-  label,
-  badge,
-  value,
-  detail,
-  title,
-}: {
-  icon: typeof Server;
-  label: string;
-  badge?: React.ReactNode;
-  value: React.ReactNode;
-  detail?: React.ReactNode;
-  title?: string;
-}) {
-  return (
-    <Card className="min-w-0 p-4">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2 text-xs text-slate-500">
-          <Icon className="h-4 w-4 shrink-0" />
-          <span className="truncate">{label}</span>
-        </div>
-        {badge}
-      </div>
-      <div className="mt-3 truncate text-base font-semibold text-slate-900">{value}</div>
-      {detail ? (
-        <p className="mt-1 truncate text-xs text-slate-500" title={title}>
-          {detail}
-        </p>
-      ) : null}
-    </Card>
-  );
-}
-
 export default function SystemUpdate() {
   const queryClient = useQueryClient();
   const [check, setCheck] = useState<CheckResult | null>(null);
@@ -248,149 +204,115 @@ export default function SystemUpdate() {
 
       {tab === "status" ? (
         <div className="space-y-4">
-          {update && update.state !== "idle" ? (
-            <div
-              className={`flex flex-wrap items-start gap-3 rounded-lg border px-4 py-3 text-sm ${
-                update.state === "succeeded"
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                  : update.state === "failed"
-                    ? "border-rose-200 bg-rose-50 text-rose-800"
-                    : "border-amber-200 bg-amber-50 text-amber-900"
-              }`}
-            >
-              <span className="mt-0.5">
-                {update.state === "succeeded" ? (
-                  <CheckCircle2 className="h-4 w-4" />
-                ) : update.state === "failed" ? (
-                  <XCircle className="h-4 w-4" />
-                ) : (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                )}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="font-medium">{update.message || STATE_LABEL[update.state] || update.state}</p>
-                <p className="mt-0.5 text-xs opacity-70">
-                  {update.updatedAt ? relativeTime(update.updatedAt) : ""}
-                  {update.jobId ? ` · 任务 ${update.jobId.slice(0, 8)}` : ""}
-                </p>
-              </div>
-              {update.state === "succeeded" ? (
-                <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
-                  刷新页面
-                </Button>
-              ) : null}
-            </div>
-          ) : null}
-
           {statusQuery.isError ? (
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
               服务暂时不可达，可能正在重启；页面会继续尝试连接。
             </div>
           ) : null}
 
-          <Card>
-            <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
-              <div className="flex items-start gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary-50 text-primary-700">
-                  <Server className="h-4 w-4" />
-                </span>
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">服务控制</p>
-                  <p className="mt-0.5 text-xs text-slate-500">检查远程版本并执行系统升级；升级期间服务会短暂重启。</p>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card>
+              <CardHeader
+                title="运行状态"
+                description="当前实例与数据存储"
+                icon={<Server className="h-4 w-4" />}
+                actions={
+                  <Badge tone="green" dot>
+                    运行中
+                  </Badge>
+                }
+              />
+              <div className="border-t border-slate-100 px-5 py-4">
+                <div className="flex flex-wrap items-end justify-between gap-4">
+                  <div>
+                    <p className="text-xl font-semibold tracking-tight text-slate-900">
+                      {status?.environment === "production" ? "生产模式" : "开发模式"}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Node {status?.nodeVersion ?? "-"} · 单实例
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[11px] text-slate-500">运行时长</p>
+                    <p className="mt-1 text-sm font-medium tabular-nums text-slate-800">
+                      {status ? formatDuration(status.startedAt) : "-"}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => checkMutation.mutate()}
-                  loading={checkMutation.isPending}
-                  disabled={active}
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  检查更新
-                </Button>
-                <Button onClick={() => setConfirmOpen(true)} disabled={active}>
-                  <ArrowUpCircle className="h-4 w-4" />
-                  系统升级
-                </Button>
-              </div>
-            </div>
-          </Card>
 
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <StatusCard
-              icon={Server}
-              label="服务模式"
-              badge={<Badge tone="blue">Node.js</Badge>}
-              value={status?.environment === "production" ? "生产模式" : "开发模式"}
-              detail={`Node ${status?.nodeVersion ?? "-"} · 单实例`}
-            />
-            <StatusCard
-              icon={Clock3}
-              label="运行时长"
-              value={status ? formatDuration(status.startedAt) : "-"}
-              detail={status ? `启动于 ${new Date(status.startedAt).toLocaleString("zh-CN", { hour12: false })}` : "-"}
-            />
-            <StatusCard
-              icon={Cpu}
-              label="后端服务"
-              badge={<Badge tone="green" dot>运行中</Badge>}
-              value={status ? `PID ${status.pid}` : "-"}
-              detail={`监听端口 ${status?.port ?? "-"}`}
-            />
-            <StatusCard
-              icon={Monitor}
-              label="前端服务"
-              badge={<Badge tone="blue">静态托管</Badge>}
-              value="React SPA"
-              detail="与 API 同端口提供"
-            />
-            <StatusCard
-              icon={Database}
-              label="数据库"
-              badge={<Badge tone={status?.database.ok ? "green" : "red"}>{status?.database.ok ? "正常" : "异常"}</Badge>}
-              value="SQLite"
-              detail={status ? `${formatBytes(status.database.size)} · ${status.database.path}` : "-"}
-              title={status?.database.path}
-            />
-            <StatusCard
-              icon={GitBranch}
-              label="当前版本"
-              value={`v${status?.version ?? "-"}`}
-              detail={`提交 ${status?.shortCommit ?? "-"}`}
-            />
-            <StatusCard
-              icon={GitBranch}
-              label="代码分支"
-              value={status?.branch ?? "-"}
-              detail={status?.remote ?? "未配置远程仓库"}
-              title={status?.remote}
-            />
-            <StatusCard
-              icon={ArrowUpCircle}
-              label="更新状态"
-              badge={
-                <Badge tone={stateTone as "green" | "red" | "orange" | "gray"} dot>
-                  {STATE_LABEL[update?.state ?? "idle"] ?? update?.state}
-                </Badge>
-              }
-              value={update?.message || "尚未执行更新"}
-              detail={update?.updatedAt ? `更新于 ${relativeTime(update.updatedAt)}` : "等待操作"}
-            />
-            <StatusCard
-              icon={FileText}
-              label="配置文件"
-              value="feishu-orgwatch.properties"
-              detail={status?.propertiesPath ?? "-"}
-              title={status?.propertiesPath}
-            />
-            <StatusCard
-              icon={Folder}
-              label="日志目录"
-              value=".runtime/logs"
-              detail={status?.logDir ?? "-"}
-              title={status?.logDir}
-            />
+                <dl className="mt-5 grid gap-x-6 gap-y-3 border-t border-slate-100 pt-4 text-sm sm:grid-cols-2">
+                  <div>
+                    <dt className="text-[11px] text-slate-500">后端进程</dt>
+                    <dd className="mt-1 text-slate-700">
+                      PID {status?.pid ?? "-"} · 端口 {status?.port ?? "-"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[11px] text-slate-500">数据库</dt>
+                    <dd className="mt-1 flex items-center gap-2 text-slate-700">
+                      SQLite
+                      <Badge tone={status?.database.ok ? "green" : "red"}>
+                        {status?.database.ok ? "正常" : "异常"}
+                      </Badge>
+                      <span className="text-xs text-slate-400">{status ? formatBytes(status.database.size) : "-"}</span>
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            </Card>
+
+            <Card>
+              <CardHeader
+                title="系统更新"
+                description="从远程分支检查并升级"
+                icon={<ArrowUpCircle className="h-4 w-4" />}
+                actions={
+                  <Badge tone={stateTone as "green" | "red" | "orange" | "gray"} dot>
+                    {STATE_LABEL[update?.state ?? "idle"] ?? update?.state}
+                  </Badge>
+                }
+              />
+              <div className="border-t border-slate-100 px-5 py-4">
+                <div>
+                  <p className="text-[11px] text-slate-500">当前构建</p>
+                  <p className="mt-1 font-mono text-xl font-semibold tracking-tight text-slate-900">
+                    {status?.shortCommit ?? "-"}
+                  </p>
+                  <p className="mt-1 truncate text-xs text-slate-500">分支 {status?.branch ?? "-"}</p>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-28"
+                    onClick={() => checkMutation.mutate()}
+                    disabled={active || checkMutation.isPending}
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${checkMutation.isPending ? "animate-spin" : ""}`} />
+                    检查更新
+                  </Button>
+                  <Button size="sm" onClick={() => setConfirmOpen(true)} disabled={active}>
+                    <ArrowUpCircle className="h-3.5 w-3.5" />
+                    系统升级
+                  </Button>
+                </div>
+
+                <p
+                  className={`mt-3 text-xs leading-5 ${
+                    update?.state === "failed" ? "text-rose-600" : "text-slate-500"
+                  }`}
+                >
+                  {!update || update.state === "idle"
+                    ? "尚未执行系统更新。"
+                    : update.state === "succeeded"
+                      ? `上次更新已完成${update.updatedAt ? ` · ${relativeTime(update.updatedAt)}` : ""}`
+                      : `${update.message || STATE_LABEL[update.state] || update.state}${
+                          update.updatedAt ? ` · ${relativeTime(update.updatedAt)}` : ""
+                        }`}
+                </p>
+              </div>
+            </Card>
           </div>
 
           <Card>
@@ -407,7 +329,7 @@ export default function SystemUpdate() {
             />
             <div className="border-t border-slate-100 px-5 py-4">
               {!check ? (
-                <p className="text-sm text-slate-500">点击「检查更新」获取远程最新提交。</p>
+                <p className="text-sm text-slate-500">还没有检查远程版本。</p>
               ) : check.commits.length ? (
                 <ol className="divide-y divide-slate-100">
                   {check.commits.map((commit) => (
