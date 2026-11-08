@@ -121,6 +121,8 @@ export class ConfigService {
     const value = this.get("security.cookie-secure").toLowerCase();
     if (value === "true") return true;
     if (value === "false") return false;
+    if (this.publicBaseUrl.startsWith("https://")) return true;
+    if (this.publicBaseUrl.startsWith("http://")) return false;
     return this.isProduction;
   }
 

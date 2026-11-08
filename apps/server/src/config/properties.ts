@@ -46,7 +46,7 @@ export const PROPERTY_SPECS: PropertySpec[] = [
   { key: "sync.retention-runs", value: "60", comment: "保留最近多少份成功快照（至少 2）" },
   { key: "sync.retention-days", value: "90", comment: "快照最长保留天数" },
   { key: "security.secret-key", value: "", comment: "凭据加密密钥（base64 32 字节），留空自动生成 data/secret.key", secret: true },
-  { key: "security.cookie-secure", value: "auto", comment: "会话 Cookie 是否仅 HTTPS：auto/true/false" },
+  { key: "security.cookie-secure", value: "auto", comment: "会话 Cookie 是否仅 HTTPS：auto 跟随 app.public-base-url，也可强制 true/false" },
   { key: "security.trust-proxy", value: "false", comment: "反向代理场景设为 true 以读取真实客户端 IP" },
   { key: "log.level", value: "info", comment: "日志级别：fatal/error/warn/info/debug/trace" },
 ];
