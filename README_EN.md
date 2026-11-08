@@ -36,7 +36,7 @@ It is a self-hosted web service with a NestJS + Fastify backend, a React + Vite 
 - **Acknowledgement loop**: recipients confirm in the app, administrators can confirm on their behalf, and every step is audited.
 - **Directory browsing**: browse departments and people, search, and inspect department paths and change history.
 - **Scheduled patrols**: configure schedules, time zones, catch-up runs and run history visually.
-- **Access and secrets**: enforce three roles in the UI and API, and encrypt the Feishu App Secret.
+- **Access and secrets**: enforce three roles in the UI and API, encrypt the Feishu App Secret, and let users change their own password.
 - **Operations**: PWA installation, in-app updates, live logs and snapshot backups.
 
 ## Quick start

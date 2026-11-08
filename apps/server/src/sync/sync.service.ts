@@ -33,6 +33,8 @@ const SYSTEM_ACTOR: SessionUser = {
   avatarUrl: null,
   feishuOpenId: null,
   feishuUnionId: null,
+  source: "system",
+  hasPassword: false,
 };
 
 export type StartRunInput = {

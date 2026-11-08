@@ -13,6 +13,8 @@ export type User = {
   avatarUrl: string | null;
   feishuOpenId: string | null;
   feishuUnionId: string | null;
+  source: string;
+  hasPassword: boolean;
 };
 
 export type BootstrapStatus = {

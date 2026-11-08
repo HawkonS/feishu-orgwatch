@@ -22,6 +22,8 @@ export type SessionUser = {
   avatarUrl: string | null;
   feishuOpenId: string | null;
   feishuUnionId: string | null;
+  source: string;
+  hasPassword: boolean;
 };
 
 export type FeishuProfile = {
@@ -175,6 +177,8 @@ export class AuthService {
       avatarUrl: row.avatarUrl,
       feishuOpenId: row.feishuOpenId,
       feishuUnionId: row.feishuUnionId,
+      source: row.source,
+      hasPassword: Boolean(row.passwordHash),
     };
   }
 

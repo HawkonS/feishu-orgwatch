@@ -11,6 +11,7 @@ import {
   Network,
   RefreshCw,
   ScrollText,
+  ChevronDown,
   Settings as SettingsIcon,
   UserCog,
   X,
@@ -147,14 +148,17 @@ export function Layout({ children }: { children?: ReactNode }) {
 
         <div className="ml-auto flex items-center gap-3 text-sm md:gap-5">
           {user ? (
-            <span className="inline-flex min-w-0 items-center gap-2 text-slate-700">
+            <NavLink
+              to="/account"
+              title="个人设置"
+              aria-label="个人设置"
+              className="group inline-flex min-w-0 items-center gap-2 rounded-full py-1 pl-1 pr-1.5 text-slate-700 transition-colors hover:bg-slate-50"
+            >
               <Avatar name={user.displayName} src={user.avatarUrl} size="sm" />
-              <span className="hidden max-w-28 truncate sm:inline">{user.displayName}</span>
-              <span className="mx-1 hidden text-slate-300 sm:inline">·</span>
-              <span className="hidden max-w-20 truncate text-slate-500 md:inline">
-                {ROLE_LABELS[user.role]}
-              </span>
-            </span>
+              <span className="hidden max-w-28 truncate text-sm sm:inline">{user.displayName}</span>
+              <span className="hidden text-xs text-slate-400 md:inline">{ROLE_LABELS[user.role]}</span>
+              <ChevronDown className="h-3 w-3 text-slate-300 transition-colors group-hover:text-slate-400" />
+            </NavLink>
           ) : null}
           <button
             type="button"

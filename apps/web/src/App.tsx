@@ -14,6 +14,7 @@ import Settings from "./pages/Settings";
 import UsersAdmin from "./pages/UsersAdmin";
 import Audit from "./pages/Audit";
 import Guide from "./pages/Guide";
+import Account from "./pages/Account";
 import SystemUpdate from "./pages/SystemUpdate";
 
 function FullScreen({ label }: { label?: string }) {
@@ -87,6 +88,7 @@ export default function App() {
         <Route path="/admin/users" element={<RoleGate roles={["admin"]}><UsersAdmin /></RoleGate>} />
         <Route path="/settings" element={<RoleGate roles={["admin", "operator"]}><Settings /></RoleGate>} />
         <Route path="/admin/system" element={<RoleGate roles={["admin"]}><SystemUpdate /></RoleGate>} />
+        <Route path="/account" element={<Account />} />
         <Route path="/guide" element={<Guide />} />
         <Route path="/audit" element={<RoleGate roles={["admin"]}><Audit /></RoleGate>} />
         <Route path="*" element={<Navigate to="/" replace />} />

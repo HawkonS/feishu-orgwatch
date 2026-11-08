@@ -740,7 +740,9 @@ export default function UsersAdmin() {
           </>
         }
       >
-        <p className="text-sm text-slate-600">临时密码只显示一次，请复制后转交用户并提醒修改。</p>
+        <p className="text-sm leading-6 text-slate-600">
+              临时密码只显示一次，请复制后转交用户。用户登录后点击右上角头像，可在「个人设置」中修改密码。
+            </p>
       </Modal>
 
       <Modal
@@ -769,7 +771,9 @@ export default function UsersAdmin() {
         }
       >
         <div className="rounded-md border bg-slate-50 px-3 py-3 font-mono text-sm">{resetResult?.password}</div>
-        <p className="mt-2 text-xs text-slate-500">关闭后无法再次查看。</p>
+        <p className="mt-2 text-xs leading-5 text-slate-500">
+              关闭后无法再次查看。请提醒用户登录后点击右上角头像，在「个人设置」中修改。
+            </p>
       </Modal>
     </div>
   );
