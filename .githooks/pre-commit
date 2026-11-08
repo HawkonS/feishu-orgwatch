@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+
+npm run audit:repository
+
+if [ "${ORGWATCH_SKIP_CHECKS:-}" = "1" ]; then
+  exit 0
+fi
+
+for git_variable in $(git rev-parse --local-env-vars); do
+  unset "$git_variable"
+done
+
+npm run check

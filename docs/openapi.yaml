@@ -1,0 +1,561 @@
+openapi: 3.0.3
+info:
+  title: feishu-orgwatch API
+  version: 0.1.0
+  description: |
+    飞书组织架构巡查与知情闭环平台的 HTTP API。
+    除公开接口外均需会话 Cookie；写请求必须携带 X-Requested-With: feishu-orgwatch。
+servers:
+  - url: /api
+security:
+  - cookieAuth: []
+tags:
+  - name: auth
+  - name: directory
+  - name: diffs
+  - name: runs
+  - name: tasks
+  - name: settings
+  - name: admin
+  - name: system
+
+paths:
+  /bootstrap/status:
+    get:
+      tags: [system]
+      security: []
+      summary: 初始化状态
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  initialized: { type: boolean }
+                  feishuLoginEnabled: { type: boolean }
+                  siteName: { type: string }
+                  copyright: { type: string }
+  /auth/login:
+    post:
+      tags: [auth]
+      security: []
+      summary: 本地登录
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string }
+      responses:
+        "201": { description: 登录成功，返回用户并设置会话 Cookie }
+        "401": { description: 用户名或密码错误 }
+        "429": { description: 失败次数过多 }
+  /auth/logout:
+    post:
+      tags: [auth]
+      security: []
+      summary: 登出
+      responses:
+        "201": { description: 已登出 }
+  /auth/me:
+    get:
+      tags: [auth]
+      summary: 当前用户
+      responses:
+        "200": { description: 当前用户与角色 }
+  /directory/snapshot:
+    get:
+      tags: [directory]
+      summary: 最新快照
+      responses:
+        "200": { description: 快照元信息 }
+        "404": { description: 尚无快照 }
+  /directory/departments:
+    get:
+      tags: [directory]
+      summary: 部门树
+      parameters:
+        - in: query
+          name: snapshotId
+          schema: { type: integer }
+      responses:
+        "200": { description: 扁平部门列表，含路径与人数 }
+  /directory/people:
+    get:
+      tags: [directory]
+      summary: 人员分页
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: departmentId
+          schema: { type: string }
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, default: 50, maximum: 500 }
+      responses:
+        "200": { description: 分页人员 }
+  /directory/people/{openId}:
+    get:
+      tags: [directory]
+      summary: 人员详情
+      parameters:
+        - in: path
+          name: openId
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: 人员、部门与相关变更 }
+        "404": { description: 不存在 }
+  /directory/chats:
+    get:
+      tags: [directory]
+      summary: 机器人所在群
+      responses:
+        "200": { description: 群列表；失败时返回空列表与 warning }
+  /diffs:
+    get:
+      tags: [diffs]
+      summary: 差异列表
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string, enum: [new, notified, acknowledged, ignored] }
+        - in: query
+          name: severity
+          schema: { type: string, enum: [high, medium, low, info] }
+        - in: query
+          name: entityType
+          schema: { type: string, enum: [person, department] }
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, default: 50, maximum: 500 }
+      responses:
+        "200": { description: 分页差异 }
+  /diffs/{id}:
+    get:
+      tags: [diffs]
+      summary: 差异详情
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: 差异、任务、快照与发送统计 }
+        "404": { description: 不存在 }
+  /diffs/{id}/changes:
+    get:
+      tags: [diffs]
+      summary: 差异明细
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: entityType
+          schema: { type: string, enum: [person, department] }
+        - in: query
+          name: changeKind
+          schema: { type: string }
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, default: 50, maximum: 500 }
+      responses:
+        "200": { description: 分页变更 }
+  /diffs/{id}/informs:
+    get:
+      tags: [diffs]
+      summary: 知情批次
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: 批次与收件人状态 }
+    post:
+      tags: [diffs]
+      summary: 发送知情卡片
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [recipients]
+              properties:
+                recipients:
+                  type: array
+                  maxItems: 200
+                  items:
+                    type: object
+                    required: [type, id]
+                    properties:
+                      type: { type: string, enum: [user, chat] }
+                      id: { type: string }
+                      name: { type: string }
+                note: { type: string, maxLength: 500 }
+                changeIds:
+                  type: array
+                  items: { type: integer }
+      responses:
+        "201": { description: 已创建批次并尝试发送 }
+        "400": { description: 参数或状态不允许 }
+  /informs/{id}/retry:
+    post:
+      tags: [diffs]
+      summary: 重试未成功的收件人
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                deliveryIds:
+                  type: array
+                  items: { type: integer }
+      responses:
+        "201": { description: 已重试 }
+  /diffs/{id}/ack:
+    post:
+      tags: [diffs]
+      summary: 本人确认知情
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "201": { description: 已记录回执 }
+        "404": { description: 没有匹配的知情记录 }
+  /diffs/{id}/deliveries/{deliveryId}/ack:
+    post:
+      tags: [diffs]
+      summary: 代确认知情
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: path
+          name: deliveryId
+          required: true
+          schema: { type: integer }
+      responses:
+        "201": { description: 已代确认 }
+  /diffs/{id}/resolve:
+    post:
+      tags: [diffs]
+      summary: 结案或忽略
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [acknowledged, ignored] }
+                reason: { type: string, maxLength: 500 }
+      responses:
+        "201": { description: 状态已更新 }
+  /runs:
+    get:
+      tags: [runs]
+      summary: 运行列表
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string }
+        - in: query
+          name: page
+          schema: { type: integer }
+      responses:
+        "200": { description: 分页运行 }
+    post:
+      tags: [runs]
+      summary: 立即巡查
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                taskId: { type: integer }
+                rootDepartmentId: { type: string }
+      responses:
+        "201": { description: 已创建运行并返回 runId }
+        "400": { description: 未配置凭据 }
+        "409": { description: 已有运行 }
+  /runs/{id}:
+    get:
+      tags: [runs]
+      summary: 运行详情
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: 运行与事件 }
+  /runs/{id}/cancel:
+    post:
+      tags: [runs]
+      summary: 取消运行
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "201": { description: 已请求取消 }
+  /runs/{id}/confirm:
+    post:
+      tags: [runs]
+      summary: 确认隔离快照并生成差异
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "201": { description: 已确认 }
+  /tasks:
+    get:
+      tags: [tasks]
+      summary: 任务列表
+      responses:
+        "200": { description: 任务列表 }
+    post:
+      tags: [tasks]
+      summary: 创建任务
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, cron]
+              properties:
+                name: { type: string }
+                description: { type: string }
+                cron: { type: string }
+                timezone: { type: string }
+                rootDepartmentId: { type: string }
+                enabled: { type: boolean }
+                retentionRuns: { type: integer }
+      responses:
+        "201": { description: 已创建 }
+  /tasks/validate-cron:
+    post:
+      tags: [tasks]
+      summary: 校验 cron
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cron]
+              properties:
+                cron: { type: string }
+                timezone: { type: string }
+      responses:
+        "201": { description: 未来 5 次执行时间 }
+  /tasks/{id}:
+    get:
+      tags: [tasks]
+      summary: 任务详情
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: 任务 }
+    patch:
+      tags: [tasks]
+      summary: 更新任务
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: 已更新 }
+    delete:
+      tags: [tasks]
+      summary: 删除任务
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: 已删除 }
+  /tasks/{id}/run:
+    post:
+      tags: [tasks]
+      summary: 立即执行任务
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "201": { description: 返回 runId }
+  /tasks/{id}/runs:
+    get:
+      tags: [tasks]
+      summary: 任务运行历史
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: 分页运行 }
+  /settings:
+    get:
+      tags: [settings]
+      summary: 读取设置
+      responses:
+        "200": { description: 配置项与当前值（secret 不返回明文） }
+    post:
+      tags: [settings]
+      summary: 保存设置
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: { type: string }
+      responses:
+        "201": { description: 已保存 }
+  /settings/feishu/test:
+    post:
+      tags: [settings]
+      summary: 测试飞书连接
+      responses:
+        "201": { description: 连接成功 }
+        "502": { description: 飞书接口错误 }
+  /admin/users:
+    get:
+      tags: [admin]
+      summary: 用户列表
+      responses:
+        "200": { description: 用户列表 }
+    post:
+      tags: [admin]
+      summary: 创建用户
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, displayName, role, password]
+              properties:
+                username: { type: string }
+                displayName: { type: string }
+                email: { type: string, nullable: true }
+                role: { type: string, enum: [admin, operator, viewer] }
+                password: { type: string, minLength: 12 }
+      responses:
+        "201": { description: 已创建 }
+  /admin/users/{id}:
+    patch:
+      tags: [admin]
+      summary: 更新用户
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role: { type: string, enum: [admin, operator, viewer] }
+                status: { type: string, enum: [active, disabled] }
+      responses:
+        "200": { description: 已更新 }
+  /audit:
+    get:
+      tags: [admin]
+      summary: 审计查询
+      parameters:
+        - in: query
+          name: action
+          schema: { type: string }
+        - in: query
+          name: actor
+          schema: { type: string }
+        - in: query
+          name: page
+          schema: { type: integer }
+      responses:
+        "200": { description: 分页审计 }
+  /health:
+    get:
+      tags: [system]
+      security: []
+      summary: 健康检查
+      responses:
+        "200": { description: 数据库、调度器与最近运行状态 }
+  /meta:
+    get:
+      tags: [system]
+      security: []
+      summary: 版本与站点信息
+      responses:
+        "200": { description: 版本、站点名、版权、时区 }
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: feishu_orgwatch_session

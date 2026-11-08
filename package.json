@@ -1,0 +1,59 @@
+{
+  "name": "feishu-orgwatch",
+  "version": "0.1.0",
+  "private": true,
+  "description": "飞书组织架构巡查器：组织变动巡查、知情卡片与回执闭环",
+  "author": "HawkonS",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HawkonS/feishu-orgwatch.git"
+  },
+  "homepage": "https://github.com/HawkonS/feishu-orgwatch",
+  "bugs": {
+    "url": "https://github.com/HawkonS/feishu-orgwatch/issues"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0",
+    "npm": ">=10"
+  },
+  "workspaces": [
+    "apps/server",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n server,web -c blue,green \"npm:dev:server\" \"npm:dev:web\"",
+    "dev:server": "npm --workspace @feishu-orgwatch/server run dev",
+    "dev:web": "npm --workspace @feishu-orgwatch/web run dev",
+    "build": "npm run build:server && npm run build:web",
+    "build:server": "npm --workspace @feishu-orgwatch/server run build",
+    "build:web": "npm --workspace @feishu-orgwatch/web run build",
+    "start": "node apps/server/dist/main.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"apps/**/*.{ts,tsx,css}\" \"scripts/*.mjs\" \"tools/*.mjs\"",
+    "typecheck": "npm run typecheck:server && npm run typecheck:web",
+    "typecheck:server": "npm --workspace @feishu-orgwatch/server run typecheck",
+    "typecheck:web": "npm --workspace @feishu-orgwatch/web run typecheck",
+    "test": "npm --workspace @feishu-orgwatch/server run test",
+    "test:web": "npm --workspace @feishu-orgwatch/web run test",
+    "test:e2e": "node scripts/e2e.mjs",
+    "audit:repository": "node tools/audit-repository.mjs",
+    "check": "npm run lint && npm run typecheck && npm run test && npm run test:web && npm run build && npm run audit:repository",
+    "db:generate": "npm --workspace @feishu-orgwatch/server run db:generate",
+    "seed:demo": "node scripts/seed-demo.mjs",
+    "spike:directory": "tsx --tsconfig apps/server/tsconfig.json scripts/spike-directory.ts",
+    "reset-admin-password": "node scripts/reset-admin-password.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "concurrently": "^9.2.1",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^6.1.1",
+    "globals": "^15.15.0",
+    "prettier": "^3.9.10",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.72.1"
+  }
+}

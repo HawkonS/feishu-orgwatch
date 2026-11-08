@@ -1,0 +1,44 @@
+#!/bin/sh
+set -eu
+
+LC_ALL=C
+export LC_ALL
+
+message_file="$1"
+message=$(sed -n '1p' "$message_file")
+
+# Shared convention: required lowercase scope and a lowercase summary verb.
+# Proper names and technical identifiers may retain capitals after that verb.
+pattern='^(feat|fix|refactor|ui|perf|docs|test|build|ci|chore|revert)\([a-z][a-z0-9-]*\)!?: [a-z][ -~]*$'
+
+if ! printf '%s\n' "$message" | grep -Eq "$pattern"; then
+  cat >&2 <<'MSG'
+Invalid commit message.
+
+Use Conventional Commits with a required scope, for example:
+  feat(web): add meeting booking form
+  fix(api): retry failed sync jobs
+  ui(web): adjust the booking form layout
+  docs(repo): update local setup instructions
+MSG
+  exit 1
+fi
+
+if [ "${#message}" -gt 72 ]; then
+  echo "The complete commit title must be 72 characters or fewer." >&2
+  exit 1
+fi
+
+case "$message" in
+  *[[:space:].])
+    echo "Commit titles must not end with a period or whitespace." >&2
+    exit 1
+    ;;
+esac
+
+# Ignore blank lines and Git's editor comments when checking for a body.
+body=$(sed '1d' "$message_file" | sed '/^[[:space:]]*$/d' | sed '/^#/d')
+if [ -n "$body" ]; then
+  echo "Use one title line only; bodies, footers, and trailers are forbidden." >&2
+  exit 1
+fi

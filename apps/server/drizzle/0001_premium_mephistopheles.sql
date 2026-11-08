@@ -1,0 +1,1 @@
+ALTER TABLE `snapshot_departments` ADD `leader_open_ids` text;

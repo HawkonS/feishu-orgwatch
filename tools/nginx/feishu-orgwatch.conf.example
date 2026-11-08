@@ -1,0 +1,39 @@
+# 反向代理示例：TLS 终止在 Nginx，应用监听 127.0.0.1:18080。
+#
+# 可选的 Nginx 层限流（放在 http {} 中，server 之前）：
+# limit_req_zone $binary_remote_addr zone=orgwatch_api:10m rate=20r/s;
+server {
+    listen 443 ssl;
+    server_name orgwatch.example.com;
+
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_certificate     /etc/ssl/certs/orgwatch.crt;
+    ssl_certificate_key /etc/ssl/private/orgwatch.key;
+
+    client_max_body_size 2m;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy no-referrer always;
+
+    location /api/ {
+        # 启用上面的 limit_req_zone 后，取消下一行注释：
+        # limit_req zone=orgwatch_api burst=40 nodelay;
+        proxy_pass http://127.0.0.1:18080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:18080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+    }
+}

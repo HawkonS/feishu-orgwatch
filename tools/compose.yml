@@ -1,0 +1,19 @@
+services:
+  feishu-orgwatch:
+    build:
+      context: ..
+      dockerfile: tools/Dockerfile
+    ports:
+      - "${ORGWATCH_APP_PORT:-18080}:18080"
+    environment:
+      - ORGWATCH_WORKSPACE=/state
+      - ORGWATCH_APP_HOST=0.0.0.0
+      # 直接通过 HTTP 访问时需要关闭 Secure Cookie；放在 HTTPS 反代后请改成 true
+      - ORGWATCH_SECURITY_COOKIE_SECURE=false
+    volumes:
+      - feishu-orgwatch-state:/state
+    restart: unless-stopped
+    stop_grace_period: 30s
+
+volumes:
+  feishu-orgwatch-state:
