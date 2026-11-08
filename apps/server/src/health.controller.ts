@@ -6,6 +6,7 @@ import { ConfigService } from "./config/config.service.js";
 import { DatabaseService } from "./db/database.service.js";
 import { SyncService } from "./sync/sync.service.js";
 import { SchedulerService } from "./sync/scheduler.service.js";
+import { SystemService } from "./system/system.service.js";
 import { Public } from "./auth/auth.guard.js";
 import { nowIso } from "./common/text.js";
 
@@ -18,6 +19,7 @@ export class HealthController {
     @Inject(DatabaseService) private readonly database: DatabaseService,
     @Inject(SyncService) private readonly sync: SyncService,
     @Inject(SchedulerService) private readonly scheduler: SchedulerService,
+    @Inject(SystemService) private readonly system: SystemService,
   ) {}
 
   private version(): string {
@@ -59,10 +61,13 @@ export class HealthController {
 
   @Public()
   @Get("meta")
-  meta() {
+  async meta() {
+    const build = await this.system.buildInfo();
     return {
       name: "feishu-orgwatch",
       version: this.version(),
+      build: build.build,
+      updatedAt: build.updatedAt,
       siteName: this.config.siteName,
       copyright: this.config.copyright,
       timezone: this.config.timezone,

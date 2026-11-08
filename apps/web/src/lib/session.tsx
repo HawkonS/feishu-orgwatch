@@ -71,6 +71,20 @@ export function useSession(): SessionContextValue {
   return context;
 }
 
+export type Meta = {
+  build: string;
+  updatedAt: string | null;
+};
+
+export function useMeta() {
+  return useQuery({
+    queryKey: ["meta"],
+    queryFn: () => get<Meta>("/meta"),
+    staleTime: 60_000,
+    retry: false,
+  });
+}
+
 export function useBootstrapStatus() {
   return useQuery({
     queryKey: ["bootstrap-status"],

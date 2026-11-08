@@ -16,7 +16,8 @@ import {
   UserCog,
   X,
 } from "lucide-react";
-import { useBootstrapStatus, useSession, ROLE_LABELS, type Role } from "../lib/session";
+import { useBootstrapStatus, useMeta, useSession, ROLE_LABELS, type Role } from "../lib/session";
+import { formatDateTime } from "../lib/format";
 import { Avatar, cn } from "./ui";
 
 const NAV_SECTIONS: Array<{
@@ -87,6 +88,7 @@ function NavItem({
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { user } = useSession();
   const { data: bootstrap } = useBootstrapStatus();
+  const { data: meta } = useMeta();
 
   return (
     <div className="flex h-full flex-col select-none">
@@ -113,8 +115,8 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       </div>
 
       <div className="shrink-0 px-4 py-3 text-center text-[11px] leading-relaxed text-slate-400">
-        <div>{bootstrap?.siteName ?? "飞书组织架构巡查器"}</div>
-        <div>v0.1.0 · Apache-2.0</div>
+        <div className="font-mono">{meta?.build ? `构建 ${meta.build}` : "构建 -"}</div>
+        <div className="mt-0.5">{meta?.updatedAt ? `更新于 ${formatDateTime(meta.updatedAt)}` : "更新于 -"}</div>
       </div>
     </div>
   );

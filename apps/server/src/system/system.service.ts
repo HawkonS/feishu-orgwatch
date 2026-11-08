@@ -102,6 +102,33 @@ export class SystemService implements OnModuleInit {
     }
   }
 
+  private lastUpdateAt(): string | null {
+    const candidates = [this.stateFile, path.join(this.config.runtimeDir, "update-state.json")];
+    for (const file of candidates) {
+      try {
+        const parsed = JSON.parse(readFileSync(file, "utf8")) as { updatedAt?: unknown };
+        if (typeof parsed.updatedAt === "string" && parsed.updatedAt) return parsed.updatedAt;
+      } catch {
+        // Try the next location.
+      }
+    }
+    try {
+      return statSync(path.join(this.config.logDir, "update.log")).mtime.toISOString();
+    } catch {
+      return null;
+    }
+  }
+
+  async buildInfo(): Promise<{ build: string; updatedAt: string | null }> {
+    try {
+      const build = await this.git(["rev-parse", "--short=12", "HEAD"]);
+      const commitAt = await this.git(["show", "-s", "--format=%cI", "HEAD"]);
+      return { build, updatedAt: this.lastUpdateAt() ?? commitAt };
+    } catch {
+      return { build: "unknown", updatedAt: this.lastUpdateAt() };
+    }
+  }
+
   readState(): UpdateState {
     try {
       const parsed = JSON.parse(readFileSync(this.stateFile, "utf8")) as Partial<UpdateState>;
