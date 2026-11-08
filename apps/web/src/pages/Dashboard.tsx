@@ -9,6 +9,7 @@ import {
   BellRing,
   Building2,
   CheckCircle2,
+  Database,
   GitCompareArrows,
   Loader2,
   Network,
@@ -20,7 +21,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { get, post, errorMessage } from "../api";
-import { canManage, canOperate, useSession } from "../lib/session";
+import { canManage, canOperate, useBootstrapStatus, useSession } from "../lib/session";
 import type { Diff, Run, Snapshot } from "../lib/types";
 import {
   DIFF_STATUS_LABELS,
@@ -90,6 +91,7 @@ const STATUS_COLOR: Record<keyof Overview["diffStats"], string> = {
 
 export default function Dashboard() {
   const { user } = useSession();
+  const { data: bootstrap } = useBootstrapStatus();
   const queryClient = useQueryClient();
   const [starting, setStarting] = useState(false);
 
@@ -130,7 +132,34 @@ export default function Dashboard() {
     }
   };
 
+  const configured = Boolean(bootstrap?.feishuLoginEnabled);
   if (overviewQuery.isLoading) return <LoadingBlock label="正在加载概览…" />;
+
+  if (!snapshot) {
+    return (
+      <div className="flex flex-col gap-4 lg:min-h-[calc(100vh-8.5rem)]">
+        <PageHeader
+          title={`${greeting()}，${user?.displayName ?? ""}`}
+          description={
+            configured
+              ? "飞书已连接，执行第一次巡查生成组织快照。"
+              : "连接飞书后，组织变化会出现在这里。"
+          }
+        />
+        <div className="flex flex-1 items-center justify-center py-4">
+          <div className="w-full max-w-6xl">
+            <SetupPanel
+              configured={configured}
+              admin={admin}
+              canStart={canOperate(user)}
+              starting={starting}
+              onStart={() => void startRun()}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4 lg:h-[calc(100vh-6.5rem)] lg:min-h-[720px]">
@@ -156,44 +185,6 @@ export default function Dashboard() {
           </>
         }
       />
-
-      {!snapshot ? (
-        <Card className="p-5">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="max-w-xl">
-              <h2 className="text-base font-semibold">还没有组织架构快照</h2>
-              <p className="mt-1 text-sm leading-6 text-slate-500">
-                配置飞书自建应用后执行一次巡查，系统会保存第一份快照；之后的巡查只会展示真实差异。
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {admin ? (
-                  <Link to="/settings">
-                    <Button variant="outline" size="sm">
-                      配置飞书应用
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </Button>
-                  </Link>
-                ) : null}
-                {canOperate(user) ? (
-                  <Button size="sm" onClick={() => void startRun()} loading={starting}>
-                    立即巡查
-                  </Button>
-                ) : null}
-              </div>
-            </div>
-            <ol className="space-y-1.5 text-xs text-slate-500">
-              {["填写 App ID / Secret", "测试连接并巡查", "创建定时任务"].map((step, index) => (
-                <li key={step} className="flex items-center gap-2">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 text-[10px] text-slate-500">
-                    {index + 1}
-                  </span>
-                  {step}
-                </li>
-              ))}
-            </ol>
-          </div>
-        </Card>
-      ) : null}
 
       <div className="grid shrink-0 grid-cols-2 gap-4 xl:grid-cols-4">
         <StatCard
@@ -394,6 +385,128 @@ export default function Dashboard() {
           </Card>
         </div>
       </div>
+    </div>
+  );
+}
+
+function SetupPanel({
+  configured,
+  admin,
+  canStart,
+  starting,
+  onStart,
+}: {
+  configured: boolean;
+  admin: boolean;
+  canStart: boolean;
+  starting: boolean;
+  onStart: () => void;
+}) {
+  const steps = configured
+    ? [
+        { title: "确认巡查范围", detail: "默认从根部门开始，也可以在任务中指定部门。" },
+        { title: "执行首次巡查", detail: "保存第一份组织快照，后续巡查会与它比较。" },
+        { title: "设置定时任务", detail: "让巡查自动运行，变化就会持续出现在这里。" },
+      ]
+    : [
+        { title: "创建企业自建应用", detail: "在飞书开放平台创建应用并开启通讯录、机器人权限。" },
+        { title: "填写 App ID / Secret", detail: "在设置页保存应用凭据，凭据会加密存储。" },
+        { title: "测试连接并巡查", detail: "连接成功后执行首次巡查，生成组织快照。" },
+      ];
+
+  const flow = [
+    { icon: Network, title: "飞书通讯录", detail: "部门与人员" },
+    { icon: Database, title: "组织快照", detail: "保存巡查基线" },
+    { icon: GitCompareArrows, title: "变化卡片", detail: "只推送真实差异" },
+    { icon: CheckCircle2, title: "知情回执", detail: "谁在何时知道" },
+  ];
+
+  return (
+    <div className="grid w-full gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
+      <div className="flex flex-col">
+          <Badge tone={configured ? "green" : "orange"} dot className="self-start">
+            {configured ? "飞书已连接" : "尚未配置飞书"}
+          </Badge>
+
+          <h2 className="mt-5 text-2xl font-semibold tracking-tight text-slate-900">
+            {configured ? "执行第一次巡查" : "先接通飞书，再开始巡查"}
+          </h2>
+          <p className="mt-2 max-w-lg text-sm leading-6 text-slate-500">
+            {configured
+              ? "飞书应用已经保存。执行一次巡查，系统会保存第一份组织快照，之后只展示真实变化。"
+              : "配置飞书自建应用后，系统才能读取组织架构。整个接入过程只需要一次。"}
+          </p>
+
+          <div className="mt-6 flex flex-wrap items-center gap-2">
+            {configured && canStart ? (
+              <Button size="sm" onClick={onStart} loading={starting}>
+                <Play className="h-4 w-4" />
+                开始首次巡查
+              </Button>
+            ) : null}
+            {admin ? (
+              <Link to="/settings">
+                <Button variant={configured ? "outline" : "primary"} size="sm">
+                  {configured ? "调整飞书配置" : "配置飞书应用"}
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              </Link>
+            ) : null}
+          </div>
+
+          {!admin && !configured ? (
+            <p className="mt-3 text-xs text-slate-400">请联系系统管理员完成飞书应用配置。</p>
+          ) : null}
+          {!canStart && configured ? (
+            <p className="mt-3 text-xs text-slate-400">请联系管理员执行首次巡查。</p>
+          ) : null}
+
+          <div className="mt-auto pt-10">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">三步开始</p>
+            <ol className="mt-4 space-y-3.5">
+              {steps.map((step, index) => (
+                <li key={step.title} className="flex gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-[11px] font-medium text-slate-500">
+                    {index + 1}
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium text-slate-800">{step.title}</p>
+                    <p className="mt-0.5 text-xs leading-5 text-slate-500">{step.detail}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
+
+      <div className="flex flex-col border-t border-slate-200 pt-8 lg:border-l lg:border-t-0 lg:pl-12 lg:pt-0">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">接入后会发生什么</p>
+          <div className="mt-6 flex-1">
+            <div className="flex flex-col">
+              {flow.map((item, index) => {
+                const Icon = item.icon;
+                return (
+                  <div key={item.title} className="flex gap-3">
+                    <div className="flex flex-col items-center">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm">
+                        <Icon className="h-3.5 w-3.5" />
+                      </span>
+                      {index < flow.length - 1 ? <span className="h-8 w-px bg-slate-200" /> : null}
+                    </div>
+                    <div className={index < flow.length - 1 ? "pb-4" : ""}>
+                      <p className="text-sm font-medium text-slate-800">{item.title}</p>
+                      <p className="mt-0.5 text-xs text-slate-500">{item.detail}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-8 rounded-lg border border-slate-200 bg-slate-50/60 px-4 py-3 text-xs leading-5 text-slate-500">
+            组织数据保存在你的服务器 SQLite 中，除飞书接口外不经过第三方。
+          </div>
+        </div>
     </div>
   );
 }
