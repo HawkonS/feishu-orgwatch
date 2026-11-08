@@ -109,7 +109,7 @@ export class AuthController {
       secure: this.config.cookieSecure,
       maxAge: 10 * 60,
     });
-    return reply.redirect(authorization.url);
+    return reply.code(302).header("location", authorization.url).send();
   }
 
   @Public()
@@ -138,10 +138,10 @@ export class AuthController {
         targetId: user.id,
         ip: request.ip,
       });
-      return reply.redirect(payload.redirect || "/");
+      return reply.code(302).header("location", payload.redirect || "/").send();
     } catch (error) {
       request.log.warn({ err: error }, "feishu oauth callback failed");
-      return reply.redirect("/login?feishu_error=1");
+      return reply.code(302).header("location", "/login?feishu_error=1").send();
     }
   }
 }
