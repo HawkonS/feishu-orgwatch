@@ -104,19 +104,24 @@ export class SystemService implements OnModuleInit {
 
   private lastUpdateAt(): string | null {
     const candidates = [this.stateFile, path.join(this.config.runtimeDir, "update-state.json")];
+    const times: number[] = [];
     for (const file of candidates) {
       try {
         const parsed = JSON.parse(readFileSync(file, "utf8")) as { updatedAt?: unknown };
-        if (typeof parsed.updatedAt === "string" && parsed.updatedAt) return parsed.updatedAt;
+        if (typeof parsed.updatedAt === "string") {
+          const time = Date.parse(parsed.updatedAt);
+          if (Number.isFinite(time)) times.push(time);
+        }
       } catch {
         // Try the next location.
       }
     }
     try {
-      return statSync(path.join(this.config.logDir, "update.log")).mtime.toISOString();
+      times.push(statSync(path.join(this.config.logDir, "update.log")).mtimeMs);
     } catch {
-      return null;
+      // No update log yet.
     }
+    return times.length ? new Date(Math.max(...times)).toISOString() : null;
   }
 
   async buildInfo(): Promise<{ build: string; updatedAt: string | null }> {
