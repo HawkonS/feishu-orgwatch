@@ -37,6 +37,7 @@ const PERSON_RULES: Array<{ name: string; rule: string; level: Severity | "high-
   { name: "姓名变更", rule: "姓名归一化后与上一份快照不同", level: "medium" },
   { name: "邮箱变更", rule: "主要邮箱不同；个人邮箱优先，其次企业邮箱", level: "medium" },
   { name: "部门调整", rule: "所属部门集合发生新增、移除或替换", level: "high" },
+  { name: "直属领导变更", rule: "直接主管（leader_user_id）不同；领导不在巡查范围内时标注为外部成员。默认开启，可在「设置 → 差异规则」关闭", level: "high" },
   { name: "在职状态变更", rule: "在职 / 冻结 / 离职之间发生变化", level: "high-medium" },
   { name: "职位变更", rule: "默认开启，可在「设置 → 差异规则」关闭", level: "low" },
   { name: "工号变更", rule: "默认开启，可在「设置 → 差异规则」关闭", level: "low" },
@@ -58,6 +59,7 @@ const IGNORED = [
   { icon: ListOrdered, title: "部门排序", text: "默认忽略；需要时可在设置中显式开启低优先级追踪。" },
   { icon: Mail, title: "邮箱大小写", text: "统一 trim + 小写后再比较，大小写变化不产生差异。" },
   { icon: UserRound, title: "姓名空格与全半角", text: "NFKC 归一化并折叠空白，格式差异不算改名。" },
+  { icon: UserRound, title: "虚线上级", text: "只追踪直接主管（leader_user_id），虚线上级不参与比较。" },
   { icon: EyeOff, title: "未采集的飞书字段", text: "手机号、性别、地址等没有进入快照，也不会被比较。" },
 ];
 
@@ -97,8 +99,8 @@ export default function Guide() {
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-base font-semibold tracking-tight text-slate-900">15 类变更会被记录</h2>
-              <Badge tone="blue">人员 8 类</Badge>
+              <h2 className="text-base font-semibold tracking-tight text-slate-900">16 类变更会被记录</h2>
+              <Badge tone="blue">人员 9 类</Badge>
               <Badge tone="gray">部门 7 类</Badge>
             </div>
             <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-500">
@@ -125,7 +127,7 @@ export default function Guide() {
         <Card className="overflow-hidden">
           <CardHeader
             title="人员变更"
-            description="以 open_id 识别同一个人，比较 8 个稳定字段"
+            description="以 open_id 识别同一个人，比较 9 个稳定字段"
             icon={<Users className="h-4 w-4" />}
           />
           <RuleTable rows={PERSON_RULES} />
@@ -220,7 +222,7 @@ export default function Guide() {
         ) : (
           "设置 → 差异规则"
         )}{" "}
-        开启或关闭部门排序、职位与工号。修改只影响之后生成的差异，历史差异保持原样。
+        开启或关闭部门排序、职位、工号与直属领导。修改只影响之后生成的差异，历史差异保持原样。
       </p>
     </div>
   );
