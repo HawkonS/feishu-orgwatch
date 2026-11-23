@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buildSnapshot, type SnapshotData } from "../src/sync/normalize.js";
-import { diffSnapshots, type ChangeKind } from "../src/sync/diff.engine.js";
+import { describeChange, diffSnapshots, type ChangeKind } from "../src/sync/diff.engine.js";
 import { nextRuns, validateCron } from "../src/sync/cron.js";
 import { buildDiffCard } from "../src/feishu/card.builder.js";
 import type { FetchResult, RawDepartment, RawPerson } from "../src/feishu/directory.fetcher.js";
 
-const options = { trackOrder: false, trackTitle: true, trackEmployeeNo: true };
+const options = { trackOrder: false, trackTitle: true, trackEmployeeNo: true, trackLeader: true };
 
 function person(
   openId: string,
@@ -28,6 +28,7 @@ function person(
     isFrozen: false,
     avatarUrl: null,
     departmentIds,
+    leaderOpenId: null,
     ...patch,
   };
 }
@@ -150,6 +151,59 @@ test("detects person department move, email, title and employee number changes",
   const moved = result.changes.find((change) => change.changeKind === "person_department_changed");
   assert.ok(JSON.stringify(moved?.before).includes("平台组"));
   assert.ok(JSON.stringify(moved?.after).includes("研发部"));
+});
+
+test("detects direct leader change and labels it in descriptions", () => {
+  const before = snapshot(baseDepartments, basePeople);
+  const after = snapshot(
+    baseDepartments,
+    basePeople.map((item) => (item.openId === "u3" ? { ...item, leaderOpenId: "u1" } : item)),
+  );
+  const result = diffSnapshots(before, after, options);
+  const change = result.changes.find((item) => item.changeKind === "person_leader_changed");
+  assert.ok(change, "missing person_leader_changed");
+  assert.equal(change.entityName, "王五");
+  assert.equal(change.entityKey, "u3");
+  assert.equal(change.severity, "high");
+  assert.deepEqual(change.before, { openId: null, name: null });
+  assert.deepEqual(change.after, { openId: "u1", name: "张三" });
+  assert.equal(describeChange(change), "王五 直属领导变更：未设置 → 张三");
+  assert.equal(result.counts.peopleChanged, 1);
+  assert.equal(result.severity, "high");
+});
+
+test("leader change to a leader outside the scope falls back to an external label", () => {
+  const before = snapshot(baseDepartments, basePeople);
+  const after = snapshot(
+    baseDepartments,
+    basePeople.map((item) => (item.openId === "u2" ? { ...item, leaderOpenId: "ou_external" } : item)),
+  );
+  const result = diffSnapshots(before, after, options);
+  const change = result.changes.find((item) => item.changeKind === "person_leader_changed");
+  assert.deepEqual(change?.after, { openId: "ou_external", name: null });
+  assert.equal(describeChange(change!), "李四 直属领导变更：未设置 → 外部成员（ou_external）");
+});
+
+test("baseline snapshots without leader data do not report leader changes", () => {
+  const before = snapshot(baseDepartments, basePeople);
+  const after = snapshot(
+    baseDepartments,
+    basePeople.map((item) => ({ ...item, leaderOpenId: "u1" })),
+  );
+  const legacy = { ...before, tracksLeader: false };
+  const result = diffSnapshots(legacy, after, options);
+  assert.ok(!kinds(result.changes).includes("person_leader_changed"));
+  assert.equal(result.counts.total, 0);
+});
+
+test("direct leader change is ignored when tracking is disabled", () => {
+  const before = snapshot(baseDepartments, basePeople);
+  const after = snapshot(
+    baseDepartments,
+    basePeople.map((item) => (item.openId === "u3" ? { ...item, leaderOpenId: "u1" } : item)),
+  );
+  const result = diffSnapshots(before, after, { ...options, trackLeader: false });
+  assert.equal(result.counts.total, 0);
 });
 
 test("removed person suppresses field changes", () => {

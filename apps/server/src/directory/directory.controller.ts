@@ -287,6 +287,22 @@ export class DirectoryController {
       if (path) list.push(path);
       byPerson.set(row.openId, list);
     }
+    const directLeaderIds = [
+      ...new Set(rows.map((row) => row.leaderOpenId).filter((id): id is string => Boolean(id))),
+    ];
+    const leaderRows = directLeaderIds.length
+      ? this.database.db
+          .select({ openId: snapshotPeople.openId, name: snapshotPeople.name })
+          .from(snapshotPeople)
+          .where(
+            and(
+              eq(snapshotPeople.snapshotId, snapshot.id),
+              inArray(snapshotPeople.openId, directLeaderIds),
+            ),
+          )
+          .all()
+      : [];
+    const leaderNameById = new Map(leaderRows.map((row) => [row.openId, row.name]));
     return {
       snapshot,
       total: Number(total?.count ?? 0),
@@ -294,6 +310,7 @@ export class DirectoryController {
       pageSize: parsed.pageSize,
       items: rows.map((row) => ({
         ...row,
+        leaderName: row.leaderOpenId ? leaderNameById.get(row.leaderOpenId) ?? null : null,
         departmentPaths: (byPerson.get(row.openId) ?? []).sort(),
       })),
     };
@@ -344,7 +361,21 @@ export class DirectoryController {
       .all();
     return {
       snapshot,
-      person,
+      person: {
+        ...person,
+        leaderName: person.leaderOpenId
+          ? this.database.db
+              .select({ name: snapshotPeople.name })
+              .from(snapshotPeople)
+              .where(
+                and(
+                  eq(snapshotPeople.snapshotId, snapshot.id),
+                  eq(snapshotPeople.openId, person.leaderOpenId),
+                ),
+              )
+              .get()?.name ?? null
+          : null,
+      },
       departments: departmentRows.map((row) => ({
         id: row.openDepartmentId,
         name: row.name,

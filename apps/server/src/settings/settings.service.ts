@@ -23,6 +23,7 @@ export const OPERATOR_SETTING_KEYS = new Set([
   "diff.track-order",
   "diff.track-title",
   "diff.track-employee-no",
+  "diff.track-leader",
   "notify.auto-enabled",
   "notify.auto-recipients",
 ]);
@@ -106,6 +107,13 @@ export const SETTING_SPECS: SettingSpec[] = [
     kind: "boolean",
     defaultValue: "true",
     description: "",
+  },
+  {
+    key: "diff.track-leader",
+    label: "追踪直属领导变化",
+    kind: "boolean",
+    defaultValue: "true",
+    description: "成员的直属上级（leader_user_id）变化时提醒",
   },
   {
     key: "notify.auto-enabled",

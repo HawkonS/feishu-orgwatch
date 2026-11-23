@@ -19,6 +19,7 @@ feishu-orgwatch 需要一个飞书**企业自建应用**，并用同一个应用
 | `contact:user.base:readonly` | 读取人员基本信息 |
 | `contact:user.email:readonly` | 读取人员邮箱 |
 | `contact:user.employee_id:readonly` | 读取人员工号与 user_id |
+| `contact:user.department:readonly` | 读取人员所属部门与直属领导（`leader_user_id`），缺少时直属领导变更无法察觉 |
 | `im:message:send_as_bot` | 以机器人身份发送卡片 |
 | `im:chat:readonly` | 可选，列出机器人所在群，便于选择群聊 |
 

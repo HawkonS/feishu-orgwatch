@@ -66,6 +66,16 @@ function changeValues(change: Change): { before: string; after: string } {
       return { before: String(before?.parentName ?? "-"), after: String(after?.parentName ?? "-") };
     case "department_leader_changed":
       return { before: String(before?.name ?? "空"), after: String(after?.name ?? "空") };
+    case "person_leader_changed": {
+      const leaderText = (value: Record<string, unknown> | null) => {
+        if (!value) return "未设置";
+        const name = value.name;
+        if (typeof name === "string" && name) return name;
+        const openId = value.openId;
+        return typeof openId === "string" && openId ? `外部成员（${openId}）` : "未设置";
+      };
+      return { before: leaderText(before), after: leaderText(after) };
+    }
     case "person_status_changed":
       return { before: statusLabel(String(before ?? "")), after: statusLabel(String(after ?? "")) };
     case "person_added":

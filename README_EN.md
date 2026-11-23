@@ -30,7 +30,7 @@ It is a self-hosted web service with a NestJS + Fastify backend, a React + Vite 
 ## Features
 
 - **Directory snapshots**: fetch the department tree, people and employment status under a root department.
-- **Field-level diffs**: compare tracked fields and ignore avatars, ordering and casing noise.
+- **Field-level diffs**: compare tracked fields and ignore avatars, ordering and casing noise; department leader and direct-supervisor (`leader_user_id`) changes both raise alerts.
 - **Inform cards**: pick people or group chats and send a Feishu card with a summary and deep link.
 - **Automatic notifications**: enable automatic delivery to selected people or chats when a patrol finds a new diff.
 - **Acknowledgement loop**: recipients confirm in the app, administrators can confirm on their behalf, and every step is audited.

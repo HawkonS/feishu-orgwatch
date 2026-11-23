@@ -67,6 +67,8 @@ export type Person = {
   isResigned: boolean;
   isFrozen: boolean;
   avatarUrl: string | null;
+  leaderOpenId?: string | null;
+  leaderName?: string | null;
   departmentPaths?: string[];
 };
 

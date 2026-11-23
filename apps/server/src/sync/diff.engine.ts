@@ -16,6 +16,7 @@ export type ChangeKind =
   | "person_title_changed"
   | "person_employee_no_changed"
   | "person_department_changed"
+  | "person_leader_changed"
   | "person_status_changed"
   | "department_added"
   | "department_removed"
@@ -42,6 +43,7 @@ export type DiffOptions = {
   trackOrder: boolean;
   trackTitle: boolean;
   trackEmployeeNo: boolean;
+  trackLeader: boolean;
 };
 
 export type DiffCounts = {
@@ -72,6 +74,7 @@ export const CHANGE_LABELS: Record<ChangeKind, string> = {
   person_title_changed: "职位变更",
   person_employee_no_changed: "工号变更",
   person_department_changed: "部门调整",
+  person_leader_changed: "直属领导变更",
   person_status_changed: "在职状态变更",
   department_added: "新增部门",
   department_removed: "部门删除",
@@ -94,6 +97,12 @@ const personLabel = (person: PersonNode) => person.name || person.openId;
 function leaderLabel(snapshot: SnapshotData, openId: string | null | undefined): string | null {
   if (!openId) return null;
   return snapshot.people.get(openId)?.name ?? openId;
+}
+
+/** 直属领导可能不在巡查范围内，取不到姓名时返回 null，由展示层标注“外部成员”。 */
+function leaderName(snapshot: SnapshotData, openId: string | null | undefined): string | null {
+  if (!openId) return null;
+  return snapshot.people.get(openId)?.name ?? null;
 }
 
 function pathText(paths: string[]): string {
@@ -365,6 +374,20 @@ export function diffSnapshots(
         severity: "high",
       });
     }
+    if (options.trackLeader && previous.tracksLeader && before.leaderOpenId !== person.leaderOpenId) {
+      push({
+        entityType: "person",
+        changeKind: "person_leader_changed",
+        entityKey: openId,
+        entityName: personLabel(person),
+        departmentPathBefore: beforePath,
+        departmentPathAfter: afterPath,
+        field: "leader",
+        before: { openId: before.leaderOpenId, name: leaderName(previous, before.leaderOpenId) },
+        after: { openId: person.leaderOpenId, name: leaderName(next, person.leaderOpenId) },
+        severity: "high",
+      });
+    }
     if (before.status !== person.status) {
       const becameInactive = person.status === "resigned" || person.status === "frozen";
       push({
@@ -475,6 +498,13 @@ export function describeChange(change: Change): string {
       const beforePaths = (change.before as { paths?: string[] } | null)?.paths ?? [];
       const afterPaths = (change.after as { paths?: string[] } | null)?.paths ?? [];
       return `${name} 部门调整：${pathText(beforePaths)} → ${pathText(afterPaths)}`;
+    }
+    case "person_leader_changed": {
+      const before = change.before as { openId?: string | null; name?: string | null } | null;
+      const after = change.after as { openId?: string | null; name?: string | null } | null;
+      const text = (value: { openId?: string | null; name?: string | null } | null) =>
+        value?.name ?? (value?.openId ? `外部成员（${value.openId}）` : "未设置");
+      return `${name} 直属领导变更：${text(before)} → ${text(after)}`;
     }
     case "person_status_changed":
       return `${name} 状态变更：${statusLabel(change.before)} → ${statusLabel(change.after)}`;

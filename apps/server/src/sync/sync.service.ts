@@ -104,6 +104,7 @@ export class SyncService {
       trackOrder: this.settings.getBoolean("diff.track-order", false),
       trackTitle: this.settings.getBoolean("diff.track-title", true),
       trackEmployeeNo: this.settings.getBoolean("diff.track-employee-no", true),
+      trackLeader: this.settings.getBoolean("diff.track-leader", true),
     };
   }
 

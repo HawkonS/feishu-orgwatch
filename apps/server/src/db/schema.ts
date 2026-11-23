@@ -154,6 +154,7 @@ export const snapshots = sqliteTable(
     departmentCount: integer("department_count").notNull().default(0),
     peopleCount: integer("people_count").notNull().default(0),
     status: text("status", { enum: ["ok", "quarantined"] }).notNull().default("ok"),
+    tracksLeader: integer("tracks_leader", { mode: "boolean" }).notNull().default(false),
     createdAt: text("created_at").notNull().default(now),
   },
   (table) => [index("idx_snapshots_scope").on(table.scopeRootDepartmentId, table.status, table.id)],
@@ -199,6 +200,7 @@ export const snapshotPeople = sqliteTable(
     isResigned: integer("is_resigned", { mode: "boolean" }).notNull().default(false),
     isFrozen: integer("is_frozen", { mode: "boolean" }).notNull().default(false),
     avatarUrl: text("avatar_url"),
+    leaderOpenId: text("leader_open_id"),
   },
   (table) => [
     primaryKey({ columns: [table.snapshotId, table.openId] }),

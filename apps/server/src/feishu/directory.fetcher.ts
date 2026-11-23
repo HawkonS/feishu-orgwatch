@@ -27,6 +27,7 @@ export type RawPerson = {
   isFrozen: boolean;
   avatarUrl: string | null;
   departmentIds: string[];
+  leaderOpenId: string | null;
 };
 
 export type FetchResult = {
@@ -59,6 +60,7 @@ type FeishuUser = {
   avatar_url?: string;
   avatar_thumb?: string;
   department_ids?: string[];
+  leader_user_id?: string;
   status?: {
     is_activated?: boolean;
     is_resigned?: boolean;
@@ -135,6 +137,7 @@ export class DirectoryFetcher {
       isFrozen,
       avatarUrl: this.pickAvatar(item),
       departmentIds: [...departmentIds].filter((id) => Boolean(id)),
+      leaderOpenId: item.leader_user_id ?? null,
     };
   }
 
@@ -221,6 +224,7 @@ export class DirectoryFetcher {
           existing.enterpriseEmail ??= mapped.enterpriseEmail;
           existing.jobTitle ??= mapped.jobTitle;
           existing.employeeNo ??= mapped.employeeNo;
+          existing.leaderOpenId ??= mapped.leaderOpenId;
         }
         if (people.size > maxPeople) {
           throw new ApiError(
@@ -257,6 +261,7 @@ export class DirectoryFetcher {
             person.jobTitle = person.jobTitle ?? item.job_title ?? null;
             person.employeeNo = person.employeeNo ?? item.employee_no ?? null;
             person.avatarUrl = person.avatarUrl ?? this.pickAvatar(item);
+            person.leaderOpenId = person.leaderOpenId ?? item.leader_user_id ?? null;
           }
           options.onProgress?.("enrich", index + chunk.length);
         }
@@ -265,6 +270,13 @@ export class DirectoryFetcher {
         this.logger.warn(message);
         warnings.push(message);
       }
+    }
+
+    if (people.size > 0 && ![...people.values()].some((person) => person.leaderOpenId)) {
+      const message =
+        "未获取到任何直属领导（leader_user_id）数据，直属领导变更不会被察觉；请确认应用已开通 contact:user.department:readonly 等通讯录权限";
+      this.logger.warn(message);
+      warnings.push(message);
     }
 
     return {

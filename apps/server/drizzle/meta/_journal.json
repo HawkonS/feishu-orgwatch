@@ -15,6 +15,13 @@
       "when": 1794025566478,
       "tag": "0001_premium_mephistopheles",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1795420026519,
+      "tag": "0002_strong_baron_zemo",
+      "breakpoints": true
     }
   ]
 }

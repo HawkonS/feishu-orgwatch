@@ -23,6 +23,7 @@ export type FakeUser = {
   status?: string;
   departmentIds: string[];
   avatarUrl?: string | null;
+  leaderOpenId?: string | null;
 };
 
 export type FakeFeishu = {
@@ -143,6 +144,7 @@ export async function startFakeFeishu(initial: {
             employee_no: item.employeeNo ?? undefined,
             avatar: item.avatarUrl ? { avatar_72: item.avatarUrl } : undefined,
             department_ids: item.departmentIds,
+            leader_user_id: item.leaderOpenId ?? undefined,
             status: {
               is_resigned: item.status === "resigned",
               is_frozen: item.status === "frozen",
@@ -166,6 +168,7 @@ export async function startFakeFeishu(initial: {
             enterprise_email: item.enterpriseEmail ?? undefined,
             job_title: item.jobTitle ?? undefined,
             employee_no: item.employeeNo ?? undefined,
+            leader_user_id: item.leaderOpenId ?? undefined,
           })),
       });
     }

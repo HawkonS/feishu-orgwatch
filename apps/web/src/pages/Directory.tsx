@@ -677,6 +677,12 @@ export default function Directory() {
 
             <div className="flex flex-wrap gap-2 text-[11px] text-slate-500">
               <Badge tone="gray">工号 {detailQuery.data.person.employeeNo || "-"}</Badge>
+              <Badge tone="gray">
+                直属领导{" "}
+                {detailQuery.data.person.leaderName ||
+                  detailQuery.data.person.leaderOpenId ||
+                  "未设置"}
+              </Badge>
               <Badge tone="gray">open_id {detailQuery.data.person.openId}</Badge>
             </div>
 

@@ -96,6 +96,7 @@ export const CHANGE_LABELS: Record<string, string> = {
   person_title_changed: "职位变更",
   person_employee_no_changed: "工号变更",
   person_department_changed: "部门调整",
+  person_leader_changed: "直属领导变更",
   person_status_changed: "在职状态变更",
   department_added: "新增部门",
   department_removed: "部门删除",

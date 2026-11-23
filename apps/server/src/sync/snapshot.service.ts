@@ -78,6 +78,7 @@ export class SnapshotService {
         isFrozen: row.isFrozen,
         avatarUrl: row.avatarUrl,
         departmentIds: [],
+        leaderOpenId: row.leaderOpenId,
       });
     }
     const membershipRows = this.database.db
@@ -95,6 +96,7 @@ export class SnapshotService {
       departments,
       people,
       hash: snapshot.contentHash,
+      tracksLeader: snapshot.tracksLeader,
     };
   }
 
@@ -114,6 +116,7 @@ export class SnapshotService {
           departmentCount: data.departments.size,
           peopleCount: data.people.size,
           status,
+          tracksLeader: data.tracksLeader,
         })
         .run();
       const snapshotId = Number(inserted.lastInsertRowid);
@@ -148,6 +151,7 @@ export class SnapshotService {
         isResigned: item.isResigned,
         isFrozen: item.isFrozen,
         avatarUrl: item.avatarUrl,
+        leaderOpenId: item.leaderOpenId,
       }));
       for (const chunk of chunked(personRows, 50)) {
         this.database.db.insert(snapshotPeople).values(chunk).run();

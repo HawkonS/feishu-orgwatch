@@ -28,6 +28,7 @@ export type PersonNode = {
   isFrozen: boolean;
   avatarUrl: string | null;
   departmentIds: string[];
+  leaderOpenId: string | null;
 };
 
 export type SnapshotData = {
@@ -35,6 +36,8 @@ export type SnapshotData = {
   departments: Map<string, DeptNode>;
   people: Map<string, PersonNode>;
   hash: string;
+  /** 快照是否记录了直属领导，用于避免升级后首次比对把“无数据”误判为领导变更。 */
+  tracksLeader: boolean;
 };
 
 function buildDepartments(raw: RawDepartment[]): Map<string, DeptNode> {
@@ -84,6 +87,7 @@ function normalizePerson(item: RawPerson): PersonNode {
     isFrozen: item.isFrozen,
     avatarUrl: item.avatarUrl,
     departmentIds: [...new Set(item.departmentIds)].sort(),
+    leaderOpenId: normalizeOptional(item.leaderOpenId),
   };
 }
 
@@ -112,12 +116,13 @@ export function buildSnapshot(rootDepartmentId: string, result: FetchResult): Sn
         item.employeeNo,
         item.status,
         item.departmentIds,
+        item.leaderOpenId,
       ])
       .sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
   };
   const hash = createHash("sha256").update(JSON.stringify(hashPayload)).digest("hex");
 
-  return { rootDepartmentId, departments, people, hash };
+  return { rootDepartmentId, departments, people, hash, tracksLeader: true };
 }
 
 export function personDepartmentPaths(person: PersonNode, snapshot: SnapshotData): string[] {

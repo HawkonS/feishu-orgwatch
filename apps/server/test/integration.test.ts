@@ -57,7 +57,7 @@ const departments: FakeDept[] = [
 
 const people: FakeUser[] = [
   { openId: "u1", name: "张三", email: "zhang@example.com", jobTitle: "负责人", employeeNo: "E1", departmentIds: ["d1"], avatarUrl: "https://example.com/avatar/u1.png" },
-  { openId: "u2", name: "李四", email: "li@example.com", jobTitle: "工程师", employeeNo: "E2", departmentIds: ["d1"] },
+  { openId: "u2", name: "李四", email: "li@example.com", jobTitle: "工程师", employeeNo: "E2", departmentIds: ["d1"], leaderOpenId: "u1" },
   { openId: "u3", name: "王五", email: "wang@example.com", jobTitle: "工程师", employeeNo: "E3", departmentIds: ["d2"] },
   { openId: "u4", name: "赵六", email: "zhao@example.com", jobTitle: "专员", employeeNo: "E4", departmentIds: ["d3"] },
 ];
@@ -162,7 +162,7 @@ test("end to end: default admin, sync, diff, inform, ack, rbac", async () => {
       ],
       [
         { openId: "u1", name: "张三", email: "zhang@example.com", jobTitle: "负责人", employeeNo: "E1", departmentIds: ["d1"], avatarUrl: "https://example.com/avatar/u1.png" },
-        { openId: "u3", name: "王五", email: "wang@example.com", jobTitle: "工程师", employeeNo: "E3", departmentIds: ["d1"] },
+        { openId: "u3", name: "王五", email: "wang@example.com", jobTitle: "工程师", employeeNo: "E3", departmentIds: ["d1"], leaderOpenId: "u1" },
         { openId: "u4", name: "赵六", email: "zhao2@example.com", jobTitle: "专员", employeeNo: "E4", departmentIds: ["d3"] },
         { openId: "u6", name: "孙七", email: "sun@example.com", jobTitle: "工程师", employeeNo: "E6", departmentIds: ["d4"] },
       ],
@@ -196,9 +196,26 @@ test("end to end: default admin, sync, diff, inform, ack, rbac", async () => {
       "department_moved",
       "department_added",
       "department_leader_changed",
+      "person_leader_changed",
     ]) {
       assert.ok(kinds.has(expected), `missing change kind ${expected}`);
     }
+
+    const leaderChange = changes.body.items.find(
+      (item: { changeKind: string }) => item.changeKind === "person_leader_changed",
+    );
+    assert.equal(leaderChange.entityName, "王五");
+    assert.equal(leaderChange.after.name, "张三");
+    assert.equal(leaderChange.severity, "high");
+
+    const promoted = await admin.call("/directory/people?q=王五&pageSize=10");
+    assert.equal(promoted.body.items[0].leaderOpenId, "u1");
+    assert.equal(promoted.body.items[0].leaderName, "张三");
+    const promotedDetail = await admin.call("/directory/people/u3");
+    assert.equal(promotedDetail.body.person.leaderName, "张三");
+
+    const leaderCard = await admin.call(`/diffs/${second.diffId}/changes?changeKind=person_leader_changed&pageSize=10`);
+    assert.equal(leaderCard.body.total, 1);
 
     const csv = await fetch(`${baseUrl}/api/diffs/${second.diffId}/export.csv`, {
       headers: { cookie: admin.cookie, origin: baseUrl, "x-requested-with": "feishu-orgwatch" },
@@ -221,6 +238,7 @@ test("end to end: default admin, sync, diff, inform, ack, rbac", async () => {
     assert.equal(fake.messages[0]?.receiveIdType, "open_id");
     const card = JSON.parse(String(fake.messages[0]?.body.content));
     assert.ok(JSON.stringify(card).includes(`/diffs/${second.diffId}`));
+    assert.match(String(card.elements?.map((item: { text?: { content?: string } }) => item.text?.content).join(" ")), /直属领导变更/);
 
     const afterSend = await admin.call(`/diffs/${second.diffId}`);
     assert.equal(afterSend.body.status, "notified");
